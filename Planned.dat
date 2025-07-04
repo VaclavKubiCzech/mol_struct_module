@@ -1,0 +1,6 @@
+Plans, how to improve the module:
+- split main code (mol_struct_module.py) into multiple, probably creating separate scripts tackeling different formats sepatately
+- add gzmat formats
+- develop optimisation functions using ML atomic potentials
+- interface with fortran to produce simple HF calculations
+- code in fortran DFT methods for energy calculations
