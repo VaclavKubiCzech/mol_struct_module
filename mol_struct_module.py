@@ -24,7 +24,7 @@ ATOM_NUMBER_DICT = {'Au':79, # dictionary of atomic symbols and their correspond
             'Fe':26,
             'Ni':28,
             'Ag':47,
-            'Au_surf':790} 
+            'Au_surf':790}
 
 ATOM_SYMBOL_DICT = {79:'Au', # dictionary of atomic symbols and their corresponding number
             6:'C',
@@ -127,7 +127,7 @@ class MolecularStructure:
                     'H':' 4',
                     'Au_surf':' 5',
                     'O':' 6',
-                    'Cl':' 5',
+                    'Cl':' 6',
                     'F':' 6',
                     'Fe':' 6',
                     'Ni':' 8',
@@ -361,7 +361,7 @@ class MolecularDynamics:
                     'P':' 3',
                     'H':' 4',
                     'O':' 6',
-                    'Cl':' 5',
+                    'Cl':' 6',
                     'F':' 6',
                     'Fe':' 6',
                     'Ni':' 8',
@@ -438,7 +438,7 @@ class MolecularDynamics:
                     'P':' 3',
                     'H':' 4',
                     'O':' 6',
-                    'Cl':' 5',
+                    'Cl':' 6',
                     'F':' 6',
                     'Fe':' 6',
                     'Ni':' 8',
@@ -509,6 +509,37 @@ class MolecularDynamics:
                 line+= atomnr +'\n'
                 fout.write(line)
         fout.write("%endblock AtomicCoordinatesAndAtomicSpecies " + "\n")  
+
+
+    def add_step(self, coordinates):
+        new_dyn = []
+        for dyn in self.dynamics:
+            new_dyn.append(dyn)
+        new_dyn.append(coordinates)
+        new_dyn = np.array(new_dyn)
+        self.dynamics = new_dyn
+        
+    
+    def write_ani(self, filename=None):
+        if not filename:
+            fn = open(self.name + '.ANI','w')
+        else:
+            fn = open(filename,'w')
+            
+        for step in self.dynamics:
+                    
+            fn.write(str(len(self.atoms)) + "\n")
+            fn.write("\n")  #read blank line
+            #fn.seek(0)    #rewind
+            
+            for i, site in enumerate(step):
+              fn.write(str(atom_symbol_dict[self.atoms[i]])+ "   ")
+              fn.write("{:15.11f}".format(site[0]) + "   ")
+              fn.write("{:15.11f}".format(site[1]) + "   ")
+              fn.write("{:15.11f}".format(site[2]) + "   ")
+              fn.write("\n")
+        
+
 
 def read_fdf_geometry(filename):
     lattice_vectors = []
