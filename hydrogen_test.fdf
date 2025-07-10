@@ -1,0 +1,20 @@
+NumberOfAtoms:         2
+NumberOfSpecies:        1
+
+#No LatticeConstant 1. Ang 
+#No %block LatticeVectors
+
+
+
+%block ChemicalSpeciesLabel  # Species index, atomic number, species label
+     4   1  H                      
+%endblock ChemicalSpeciesLabel 
+
+#  hydrogen_test.fdf
+
+
+AtomicCoordinatesFormat  Ang 
+%block AtomicCoordinatesAndAtomicSpecies 
+    0.000000000     0.000000000     0.000000000  4
+    1.000000000     0.000000000     0.000000000  4
+%endblock AtomicCoordinatesAndAtomicSpecies 

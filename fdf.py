@@ -4,7 +4,7 @@ FDF MODULE --- DEFINES OPERATIONS FOR FDF FILES
 
 import numpy as np
 import typing
-from constants import *
+from mol_struct_module import constants as const
 
 atomdict = {'Au':' 1',
             'C':' 2',
@@ -57,7 +57,7 @@ def read_fdf_geometry(file_name: str) -> tuple:
                 species_index = int(parts[0])
                 atomic_number = int(parts[1])
                 atomic_name = parts[2]
-                species_dict[species_index] = ATOM_NUMBER_DICT[atomic_name]
+                species_dict[species_index] = const.ATOM_NUMBER_DICT[atomic_name]
                 i += 1
 
         elif line.lower().startswith('%block atomiccoordinatesandatomicspecies'):
@@ -120,14 +120,14 @@ def write_fdf(atoms: typing.List[typing.Union[str, int]], coordinates: np.ndarra
     # chemical specification
     fout.write("%block ChemicalSpeciesLabel  # Species index, atomic number, species label" + "\n")
     for atom in atomdict:
-        if ATOM_NUMBER_DICT[atom] in atoms:
+        if const.ATOM_NUMBER_DICT[atom] in atoms:
             # surface metallic atoms are written with number multiplied by 10
-            if ATOM_NUMBER_DICT[atom] <= 250:
-                fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
+            if const.ATOM_NUMBER_DICT[atom] <= 250:
+                fout.write(f"    {atomdict[atom]}   {const.ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
             else: # in case of surface metalic atoms
-                fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]//10}  {atom}                      " + "\n")
+                fout.write(f"    {atomdict[atom]}   {const.ATOM_NUMBER_DICT[atom]//10}  {atom}                      " + "\n")
         elif atom in atoms:
-            fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
+            fout.write(f"    {atomdict[atom]}   {const.ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
     fout.write("%endblock ChemicalSpeciesLabel " + "\n")
         
     fout.write("\n")
@@ -144,7 +144,7 @@ def write_fdf(atoms: typing.List[typing.Union[str, int]], coordinates: np.ndarra
         if type(atomtype) is str:
             atomnr = atomdict[atomtype]
         if type(atomtype) is int:
-            atomnr = atomdict[ATOM_SYMBOL_DICT[atomtype]]
+            atomnr = atomdict[const.ATOM_SYMBOL_DICT[atomtype]]
       
         line= "{a:15.9f}".format(a=site[0]) + " "
         line+="{a:15.9f}".format(a=site[1]) + " "

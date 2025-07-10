@@ -4,7 +4,7 @@ XYZ MODULE --- DEFINES OPERATIONS FOR XYZ FILES
 
 import numpy as np
 import typing
-from constants import *
+from mol_struct_module import constants as const
 
 
 def read_xyz_geometry(file_path: str) -> tuple:
@@ -31,7 +31,7 @@ def read_xyz_geometry(file_path: str) -> tuple:
         symbol = parts[0]
         coords = list(map(float, parts[1:4]))
         try:
-            atoms.append(ATOM_NUMBER_DICT[symbol])
+            atoms.append(const.ATOM_NUMBER_DICT[symbol])
         except:
             atoms.append(int(symbol))
         coordinates.append(coords)
@@ -78,7 +78,7 @@ def read_ani(file_name, name="trajectory"):
                 step_coords.append(coords)
                 if len(dynamics) == 0:
                     try:
-                        atoms.append(ATOM_NUMBER_DICT[symbol])
+                        atoms.append(const.ATOM_NUMBER_DICT[symbol])
                     except:
                         atoms.append(int(symbol))
                 i += 1
@@ -111,14 +111,14 @@ def write_xyz(atoms: typing.List[typing.Union[str, int]], coordinates: np.ndarra
     for i, site in enumerate(coordinates):
         if symbols:
             try:
-                atom_symbol = ATOM_SYMBOL_DICT[atoms[i]]
+                atom_symbol = const.ATOM_SYMBOL_DICT[atoms[i]]
             except KeyError:
                 atom_symbol = str(atoms[i]) 
         else:
             try:
                 atom_symbol = int(atoms[i])
             except KeyError:
-                atom_symbol = ATOM_NUMBER_DICT[atoms[i]]
+                atom_symbol = const.ATOM_NUMBER_DICT[atoms[i]]
         try:
             if atom_symbol <= 250:
                 fn.write(str(atom_symbol)+ "   ")
@@ -155,14 +155,14 @@ def write_xyz(atoms: typing.List[typing.Union[str, int]], coordinates: np.ndarra
     for i, site in enumerate(coordinates):
         if symbols:
             try:
-                atom_symbol = ATOM_SYMBOL_DICT[atoms[i]]
+                atom_symbol = const.ATOM_SYMBOL_DICT[atoms[i]]
             except KeyError:
                 atom_symbol = str(atoms[i]) 
         else:
             try:
                 atom_symbol = int(atoms[i])
             except KeyError:
-                atom_symbol = ATOM_NUMBER_DICT[atoms[i]]
+                atom_symbol = const.ATOM_NUMBER_DICT[atoms[i]]
         try:
             if atom_symbol <= 250:
                 fn.write(str(atom_symbol)+ "   ")
@@ -199,14 +199,14 @@ def write_xyz(atoms: typing.List[typing.Union[str, int]], coordinates: np.ndarra
     for i, site in enumerate(coordinates):
         if symbols:
             try:
-                atom_symbol = ATOM_SYMBOL_DICT[atoms[i]]
+                atom_symbol = const.ATOM_SYMBOL_DICT[atoms[i]]
             except KeyError:
                 atom_symbol = str(atoms[i]) 
         else:
             try:
                 atom_symbol = int(atoms[i])
             except KeyError:
-                atom_symbol = ATOM_NUMBER_DICT[atoms[i]]
+                atom_symbol = const.ATOM_NUMBER_DICT[atoms[i]]
         try:
             if atom_symbol <= 250:
                 fn.write(str(atom_symbol)+ "   ")
@@ -245,14 +245,14 @@ def write_ani(atoms: typing.List[typing.Union[str, int]], dynamics: np.ndarray, 
         for i, site in enumerate(step):
             if symbols:
                 try:
-                    atom_symbol = ATOM_SYMBOL_DICT[atoms[i]]
+                    atom_symbol = const.ATOM_SYMBOL_DICT[atoms[i]]
                 except KeyError:
                     atom_symbol = str(atoms[i]) 
             else:
                 try:
                     atom_symbol = int(atoms[i])
                 except KeyError:
-                    atom_symbol = ATOM_NUMBER_DICT[atoms[i]]
+                    atom_symbol = const.ATOM_NUMBER_DICT[atoms[i]]
             try:
                 if atom_symbol <= 250:
                     fn.write(str(atom_symbol)+ "   ")

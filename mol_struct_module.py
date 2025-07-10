@@ -6,9 +6,9 @@ Last version: 23rd June 2025
 """
 
 import numpy as np
-import geometry
-import xyz, fdf
-from constants import *
+from mol_struct_module import geometry, xyz, fdf
+from mol_struct_module import constants as const
+
 
 class MolecularStructure:
     def __init__(self, atoms, coordinates, lattice_vectors=None, name="Unnamed"):
@@ -78,7 +78,7 @@ class MolecularStructure:
 
     def add_atom(self, atom_type, position):
         # Add an atom of type atom_type at the specified position.
-        self.atoms.append(atom_type if isinstance(atom_type, int) else ATOM_NUMBER_DICT[atom_type])
+        self.atoms.append(atom_type if isinstance(atom_type, int) else const.ATOM_NUMBER_DICT[atom_type])
         self.coordinates = np.concatenate((self.coordinates, [np.array(position)]))
         
     def add_au_to_hollow(self, au1, au2, au3, sign):
@@ -346,9 +346,9 @@ def return_lattice_positions(layer):
     return np.array(lattice)
 
 
-def read_ani(filename):
+def read_ani(file_name):
     # Reads an ANI file and returns a MolecularDynamics object.
-    atoms, dynamics, lattice_vectors, name = xyz.read_ani(filename)
+    atoms, dynamics, lattice_vectors, name = xyz.read_ani(file_name)
     return MolecularDynamics(atoms, dynamics, lattice_vectors, name)
 
 # === Example Usage ===
