@@ -6,48 +6,19 @@ Last version: 23rd June 2025
 """
 
 import numpy as np
-
-
-# ========================================================================================
-# Definition of global dictionaries
-# ========================================================================================
-ATOM_NUMBER_DICT = {'Au':79, # dictionary of atomic symbols and their corresponding number
-            'C':6,
-            'N':7,
-            'S':16,
-            'Sn':50,
-            'P':15,
-            'H':1,
-            'O':8,
-            'Cl':17,
-            'F':9,
-            'Fe':26,
-            'Ni':28,
-            'Ag':47,
-            'Au_surf':790}
-
-ATOM_SYMBOL_DICT = {79:'Au', # dictionary of atomic symbols and their corresponding number
-            6:'C',
-            7:'N',
-            16:'S',
-            50:'Sn',
-            15:'P',
-            1:'H',
-            8:'O',
-            17:'Cl',
-            9:'F',
-            26:'Fe',
-            28:'Ni',
-            47:'Ag',
-            790:'Au_surf'} 
-# ========================================================================================
-
+import geometry
+import xyz, fdf
+from constants import *
 
 class MolecularStructure:
-    def __init__(self, atoms, coordinates, lattice_vectors, name):
+    def __init__(self, atoms, coordinates, lattice_vectors=None, name="Unnamed"):
         self.atoms = atoms  # List of atomic numbers or symbols
-        self.coordinates = np.array(coordinates)  # Nx3 array of positions
-        self.lattice_vectors = np.array(lattice_vectors)  # 3x3 array
+        self.coordinates = np.array(coordinates)  # Nx3 array of xyz positions
+        self.lattice_vectors = lattice_vectors
+        if self.lattice_vectors is None:
+            self.lattice_vectors = np.zeros((3, 3))  # Default to zero if not provided
+        else:
+            self.lattice_vectors = np.array(lattice_vectors)  # 3x3 array
         self.name = name # string
           
     def __repr__(self):
@@ -59,263 +30,60 @@ class MolecularStructure:
         return ''.join(f"{el}-{counts[el]} " for el in sorted(counts))
 
     def center_of_mass(self):
-        # calculates center of mass, only if library Fdictable available
-        from periodictable import elements
-        if type(self.atoms[0]) is str:
-            masses = [elements.symbol(el).mass for el in self.atoms]
-        else:
-            masses = [elements[el].mass for el in self.atoms]
-        total_mass = sum(masses)
-        com = sum(m * coord for m, coord in zip(masses, self.coordinates)) / total_mass
-        return com
-    
-    def write_xyz(self, filename=None):
-      if not filename:
-          fn = open(self.name + '.xyz','w')
-      else:
-          fn = open(filename,'w')
-      
-      fn.write(str(len(self.atoms)) + "\n")
-      fn.write("\n")  #read blank line
-      #fn.seek(0)    #rewind
-      
-      for i, site in enumerate(self.coordinates):
-        try:
-            if self.atoms[i] <= 250:
-                fn.write(str(self.atoms[i])+ "   ")
-            else: # in case of surface metallic atoms
-                fn.write(str(self.atoms[i]//10)+ "   ")
-        except:
-            fn.write(str(self.atoms[i])+ "   ")
-        fn.write("{:15.11f}".format(site[0]) + "   ")
-        fn.write("{:15.11f}".format(site[1]) + "   ")
-        fn.write("{:15.11f}".format(site[2]) + "   ")
-        fn.write("\n")
+        return geometry.center_of_mass(self.atoms, self.coordinates)
         
-    def write_xyz_symbol(self, filename=None):
-      if not filename:
-          fn = open(self.name + '.xyz','w')
-      else:
-          fn = open(filename,'w')
-      
-      fn.write(str(len(self.atoms)) + "\n")
-      fn.write("\n")  #read blank line
-      #fn.seek(0)    #rewind
-      
-      for i, site in enumerate(self.coordinates):
-        fn.write(str(ATOM_SYMBOL_DICT[self.atoms[i]])+ "   ")
-        fn.write("{:15.11f}".format(site[0]) + "   ")
-        fn.write("{:15.11f}".format(site[1]) + "   ")
-        fn.write("{:15.11f}".format(site[2]) + "   ")
-        fn.write("\n")
+    def write_xyz(self, file_name=None, symbols=False):
+        file_name = file_name or (self.name + '.xyz')
+        xyz.write_xyz(self.atoms, self.coordinates, file_name=file_name, symbols=symbols)
 
-    def write_fdf(self, filename=None):
-        #from periodictable import elements
-        
-        if not filename:
-            fout = open(self.name + '.fdf','w')
-        else:
-            fout = open(filename,'w')
-        
-        
-        atomdict = {'Au':' 1',
-                    'C':' 2',
-                    'N':' 3',
-                    'S':' 3',
-                    'Sn':' 3',
-                    'P':' 3',
-                    'H':' 4',
-                    'Au_surf':' 5',
-                    'O':' 6',
-                    'Cl':' 6',
-                    'F':' 6',
-                    'Fe':' 6',
-                    'Ni':' 8',
-                    'Ag':' 1'}     #CHANGE FOR PROBLEM AT HAND
-
-        
-        #header
-        fout.write(f"NumberOfAtoms:         {int(self.coordinates.size/3)}" + "\n")
-        fout.write(f"NumberOfSpecies:        {len(set(self.atoms))}" + "\n")
-        fout.write("\n")
-        
-        #lattice
-        if self.lattice_vectors.any():
-            fout.write("LatticeConstant 1. Ang " + "\n")
-            fout.write("%block LatticeVectors" + "\n")
-            fout.write(f"{self.lattice_vectors[0,0]:15.9f}   {self.lattice_vectors[0,1]:15.9f}   {self.lattice_vectors[0,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[1,0]:15.9f}   {self.lattice_vectors[1,1]:15.9f}   {self.lattice_vectors[1,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[2,0]:15.9f}   {self.lattice_vectors[2,1]:15.9f}   {self.lattice_vectors[2,2]:15.9f}" + "\n")
-            fout.write("%endblock LatticeVectors" + "\n")
-        else:
-            fout.write("#No LatticeConstant 1. Ang " + "\n")
-            fout.write("#No %block LatticeVectors" + "\n")
-        
-        fout.write("\n")
-        fout.write("\n")
-        fout.write("\n")
-        
-        # chemical specification
-        fout.write("%block ChemicalSpeciesLabel  # Species index, atomic number, species label" + "\n")
-        for atom in atomdict:
-            if ATOM_NUMBER_DICT[atom] in self.atoms:
-                if ATOM_NUMBER_DICT[atom] <= 250:
-                    fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
-                else: # in case of surface metalic atoms
-                    fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]//10}  {atom}                      " + "\n")
-        fout.write("%endblock ChemicalSpeciesLabel " + "\n")
-        
-        fout.write("\n")
-        fout.write(f"#  {self.name}" + "\n")
-        fout.write("\n")
-        fout.write("\n")
-        
-        # coordinates
-        fout.write("AtomicCoordinatesFormat  Ang " + "\n")
-        fout.write("%block AtomicCoordinatesAndAtomicSpecies " + "\n") 
-        for i, site in enumerate(self.coordinates):
-          #first remove previous number from end of atomic labels to find out atom type
-          atomtype = self.atoms[i]
-          if type(atomtype) is str:
-              atomnr = atomdict[atomtype]
-          if type(atomtype) is int:
-              atomnr = atomdict[ATOM_SYMBOL_DICT[atomtype]]
-      
-          line= "{a:15.9f}".format(a=site[0]) + " "
-          line+="{a:15.9f}".format(a=site[1]) + " "
-          line+="{a:15.9f}".format(a=site[2]) + " "      
-          line+= atomnr +'\n'
-          fout.write(line)
-        fout.write("%endblock AtomicCoordinatesAndAtomicSpecies " + "\n")  
-
-    def rotate_straight(self, vector):
-        mol = rotate_structure_straight(self, vector)
-        self.coordinates = mol.coordinates
+    def write_fdf(self, file_name=None):
+        file_name = file_name or (self.name + '.fdf')
+        fdf.write_fdf(self.atoms, self.coordinates, self.lattice_vectors, file_name=file_name)    
 
     def translate(self, vector):
-        mol = translate_structure(self, vector)
-        self.coordinates = mol.coordinates
+        # Translate the structure by the given vector.
+        translated = geometry.translate_structure(self.coordinates, vector)
+        self.coordinates = translated
 
     def translate_gc(self):
-        #translate to geometrical center
-        mol = translate_to_geometrical_center(self)
-        self.coordinates = mol.coordinates
-
-    def rotate_from_to(self, from_vec, to_vec, origin=(0, 0, 0)):
-        """
-        Rotate the molecule so that from_vec aligns with to_vec, rotating around 'origin'.
-        """
-        from_vec = np.array(from_vec) / np.linalg.norm(from_vec)
-        to_vec = np.array(to_vec) / np.linalg.norm(to_vec)
-        origin = np.array(origin)
-
-        # Compute rotation axis and angle
-        axis = np.cross(from_vec, to_vec)
-        norm_axis = np.linalg.norm(axis)
-        
-        if norm_axis < 1e-8:
-            # Vectors are parallel or anti-parallel
-            if np.dot(from_vec, to_vec) > 0:
-                return  # No rotation needed
-            else:
-                # 180-degree rotation around any perpendicular axis
-                axis = np.eye(3)[np.argmin(np.abs(from_vec))]  # Pick orthogonal basis
-                norm_axis = np.linalg.norm(axis)
-        
-        axis /= norm_axis
-        angle = np.arccos(np.clip(np.dot(from_vec, to_vec), -1.0, 1.0))
-
-        # Rodrigues' rotation formula
-        K = np.array([[0, -axis[2], axis[1]],
-                      [axis[2], 0, -axis[0]],
-                      [-axis[1], axis[0], 0]])
-        
-        R = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
-
-        # Apply rotation to all coordinates
-        self.coordinates = ((self.coordinates - origin) @ R.T) + origin
+        # Translate to geometrical center.
+        translated = geometry.translate_to_geometrical_center(self.coordinates)
+        self.coordinates = translated
 
     def translate_z(self, value):
+        # Translate the structure along the z-axis by a given value.
         vector = np.array([0,0,value])
         self.translate(vector)
-        
-    def remove_site(self, list_atoms_indices):
-        new_coordinates = []
-        new_atoms = []
-        
-        if type(list_atoms_indices) is not list:
-            list_atoms_indices = [list_atoms_indices]
-        
-        for i, site in enumerate(self.atoms):
-            if i not in list_atoms_indices:
-                new_coordinates.append(self.coordinates[i])
-                new_atoms.append(site)
-        self.coordinates = np.array(new_coordinates)
-        self.atoms = new_atoms
-        
+
+    def rotate_straight(self, vector):
+        # Rotate the structure so that the given vector aligns with the z-axis.
+        straight_structure = geometry.rotate_structure_straight(self.coordinates, vector)
+        self.coordinates = straight_structure
+    
+    def rotate_from_to(self, from_vec, to_vec, origin=(0, 0, 0)):
+        # Rotate the structure so that from_vec aligns with to_vec, rotating around 'origin'.
+        self.coordinates = geometry.rotate_from_to(self.coordinates, from_vec, to_vec, origin=origin)
+
     def rotate_around_axis(self, from_vec, to_vec, axis, origin=(0, 0, 0)):
-        """
-        Rotate the molecule around a given axis such that from_vec aligns with to_vec
-        (only via rotation around 'axis'). Rotation is performed around the 'origin'.
-        """
-        from_vec = np.array(from_vec)
-        to_vec = np.array(to_vec)
-        axis = np.array(axis)
-        origin = np.array(origin)
+        # Rotate the structure around a given axis such that from_vec aligns with to_vec
+        self.coordinates = geometry.rotate_around_axis(self.coordinates, from_vec, to_vec, axis, origin=origin)
 
-        # Normalize the axis
-        axis = axis / np.linalg.norm(axis)
+    def remove_site(self, list_atoms_indices):
+        # Remove specified atomic sites from the structure.
+        list_atoms_indices = [list_atoms_indices] if type(list_atoms_indices) is not list else list_atoms_indices
 
-        # Project vectors onto the plane perpendicular to the axis
-        def project_onto_plane(v, axis):
-            return v - np.dot(v, axis) * axis
-
-        v1_proj = project_onto_plane(from_vec, axis)
-        v2_proj = project_onto_plane(to_vec, axis)
-
-        # Normalize projections
-        v1_norm = v1_proj / (np.linalg.norm(v1_proj) + 1e-12)
-        v2_norm = v2_proj / (np.linalg.norm(v2_proj) + 1e-12)
-
-        # Compute angle and direction
-        angle = np.arccos(np.clip(np.dot(v1_norm, v2_norm), -1.0, 1.0))
-        direction = np.dot(np.cross(v1_norm, v2_norm), axis)
-        if direction < 0:
-            angle = -angle
-
-        # Rodrigues' rotation matrix around axis
-        K = np.array([[0, -axis[2], axis[1]],
-                      [axis[2], 0, -axis[0]],
-                      [-axis[1], axis[0], 0]])
-        R = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
-
-        # Rotate coordinates around origin
-        self.coordinates = ((self.coordinates - origin) @ R.T) + origin
+        mask = [i not in list_atoms_indices for i in range(len(self.atoms))]
+        self.coordinates = self.coordinates[mask]
+        self.atoms = [atom for i, atom in enumerate(self.atoms) if mask[i]]
 
     def add_atom(self, atom_type, position):
-        # adding atom to structure 
-        if type(atom_type) is int:
-            self.atoms.append(atom_type)
-        else:
-            self.atoms.append(ATOM_NUMBER_DICT[atom_type])
-        
+        # Add an atom of type atom_type at the specified position.
+        self.atoms.append(atom_type if isinstance(atom_type, int) else ATOM_NUMBER_DICT[atom_type])
         self.coordinates = np.concatenate((self.coordinates, [np.array(position)]))
-                       
-    def view(self):
-        from ase.io import read
-        import ase.visualize
-        
-        self.write_xyz_symbol(filename="temp.xyz")
-        atoms = read("temp.xyz")  # or .xyz, .traj, etc.
-        ase.visualize.view(atoms)
         
     def add_au_to_hollow(self, au1, au2, au3, sign):
-        # adding au atom into hollow site of au layer, sign = +-1
-        
-        pos_au1 = self.coordinates[au1]
-        pos_au2 = self.coordinates[au2]
-        pos_au3 = self.coordinates[au3]
-        
+        # Add an Au atom to a hollow site defined by three other Au atoms. Special case for pyramidal hollow sites.
+        pos_au1, pos_au2, pos_au3 = self.coordinates[au1], self.coordinates[au2], self.coordinates[au3]
         auau_dist = 2.970 # angstroms
         triangle_height = np.sqrt(3)*auau_dist/2
         pyramide_height = np.sqrt(2/3)*auau_dist
@@ -325,168 +93,44 @@ class MolecularStructure:
         normal /= np.linalg.norm(normal)
         
         new_position = center + normal*pyramide_height
-        
         self.add_atom(79, new_position)
+    
+    def view(self):
+        # Use ase to visualize the structure.
+        from ase.io import read
+        import ase.visualize
         
-        
-        
-        
+        self.write_xyz(file_name="temp.xyz", symbols=True)
+        atoms = read("temp.xyz", format="xyz")  # specify format explicitly
+        ase.visualize.view(atoms)
         
 
 class MolecularDynamics:
-    def __init__(self, atoms, dynamics, lattice_vectors, name):
+    def __init__(self, atoms, dynamics, lattice_vectors=None, name="Unnamed"):
         self.atoms = atoms  # List of atomic numbers or symbols
         self.dynamics = np.array(dynamics)  # MxNx3 array of positions
-        self.lattice_vectors = np.array(lattice_vectors)  # 3x3 array
+        self.lattice_vectors = lattice_vectors
+        if self.lattice_vectors is None:
+            self.lattice_vectors = np.zeros((3, 3))  # Default to zero if not provided
+        else:
+            self.lattice_vectors = np.array(lattice_vectors)  # 3x3 array
         self.name = name # string
-        
     
     def __repr__(self):
         return f"MolecularStructure(atoms={self.atoms},\ncoordinates (step 1)={self.dynamics[0]},\nlattice_vectors={self.lattice_vectors})"
 
-    def write_fdf(self, step, filename=None):
-        #from periodictable import elements
-        
-        if not filename:
-            fout = open(self.name + '.fdf','w')
-        else:
-            fout = open(filename,'w')
-        
-        
-        atomdict = {'Au':' 1',
-                    'C':' 2',
-                    'N':' 3',
-                    'S':' 3',
-                    'Sn':' 3',
-                    'P':' 3',
-                    'H':' 4',
-                    'O':' 6',
-                    'Cl':' 6',
-                    'F':' 6',
-                    'Fe':' 6',
-                    'Ni':' 8',
-                    'Ag':' 1'}     #CHANGE FOR PROBLEM AT HAND
+    def write_fdf(self, step, file_name=None):
+        # Write a FDF file for a specific step in the dynamics.
+        file_name = file_name or (self.name + '.fdf')
+        fdf.write_fdf(self.atoms, self.dynamics[step], self.lattice_vectors, file_name=file_name)
 
-        
-        #header
-        fout.write(f"NumberOfAtoms:         {int(self.dynamics[step].size/3)}" + "\n")
-        fout.write(f"NumberOfSpecies:        {len(set(self.atoms))}" + "\n")
-        fout.write("\n")
-        
-        #lattice
-        if self.lattice_vectors.any():
-            fout.write("LatticeConstant 1. Ang " + "\n")
-            fout.write("%block LatticeVectors" + "\n")
-            fout.write(f"{self.lattice_vectors[0,0]:15.9f}   {self.lattice_vectors[0,1]:15.9f}   {self.lattice_vectors[0,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[1,0]:15.9f}   {self.lattice_vectors[1,1]:15.9f}   {self.lattice_vectors[1,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[2,0]:15.9f}   {self.lattice_vectors[2,1]:15.9f}   {self.lattice_vectors[2,2]:15.9f}" + "\n")
-            fout.write("%endblock LatticeVectors" + "\n")
-        else:
-            fout.write("#No LatticeConstant 1. Ang " + "\n")
-            fout.write("#No %block LatticeVectors" + "\n")
-        
-        fout.write("\n")
-        fout.write("\n")
-        fout.write("\n")
-        
-        # chemical specification
-        fout.write("%block ChemicalSpeciesLabel  # Species index, atomic number, species label" + "\n")
-        for atom in atomdict:
-            if ATOM_NUMBER_DICT[atom] in self.atoms:
-                fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
-        fout.write("%endblock ChemicalSpeciesLabel " + "\n")
-        
-        fout.write("\n")
-        fout.write(f"#  {self.name}" + "\n")
-        fout.write("\n")
-        fout.write("\n")
-        
-        # coordinates
-        fout.write("AtomicCoordinatesFormat  Ang " + "\n")
-        fout.write("%block AtomicCoordinatesAndAtomicSpecies " + "\n") 
-        for i, site in enumerate(self.dynamics[step]):
-          #first remove previous number from end of atomic labels to find out atom type
-          atomtype = self.atoms[i]
-          if type(atomtype) is str:
-              atomnr = atomdict[atomtype]
-          if type(atomtype) is int:
-              atomnr = atomdict[ATOM_SYMBOL_DICT[atomtype]]
-      
-          line= "{a:15.10f}".format(a=site[0]) + " "
-          line+="{a:15.10f}".format(a=site[1]) + " "
-          line+="{a:15.10f}".format(a=site[2]) + " "      
-          line+= atomnr +'\n'
-          fout.write(line)
-        fout.write("%endblock AtomicCoordinatesAndAtomicSpecies " + "\n")  
-        
-        
-    def write_cropped_fdf(self, step, filename=None):
-        # TBD
-        #from periodictable import elements
-        
-        if not filename:
-            fout = open(self.name + '.fdf','w')
-        else:
-            fout = open(filename,'w')
-        
-        
-        atomdict = {'Au':' 1',
-                    'C':' 2',
-                    'N':' 3',
-                    'S':' 3',
-                    'Sn':' 3',
-                    'P':' 3',
-                    'H':' 4',
-                    'O':' 6',
-                    'Cl':' 6',
-                    'F':' 6',
-                    'Fe':' 6',
-                    'Ni':' 8',
-                    'Ag':' 1'}     #CHANGE FOR PROBLEM AT HAND
-        
-        #header
-        number_of_atoms = 2
-        for atom in self.atoms:
-            if (atom != 79):
-                number_of_atoms += 1
-        fout.write(f"NumberOfAtoms:         {number_of_atoms}" + "\n")
-        fout.write(f"NumberOfSpecies:        {len(set(self.atoms))}" + "\n")
-        fout.write("\n")
-        
-        #lattice
-        if self.lattice_vectors.any():
-            fout.write("LatticeConstant 1. Ang " + "\n")
-            fout.write("%block LatticeVectors" + "\n")
-            fout.write(f"{self.lattice_vectors[0,0]:15.9f}   {self.lattice_vectors[0,1]:15.9f}   {self.lattice_vectors[0,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[1,0]:15.9f}   {self.lattice_vectors[1,1]:15.9f}   {self.lattice_vectors[1,2]:15.9f}" + "\n")
-            fout.write(f"{self.lattice_vectors[2,0]:15.9f}   {self.lattice_vectors[2,1]:15.9f}   {self.lattice_vectors[2,2]:15.9f}" + "\n")
-            fout.write("%endblock LatticeVectors" + "\n")
-        else:
-            fout.write("#No LatticeConstant 1. Ang " + "\n")
-            fout.write("#No %block LatticeVectors" + "\n")
-        
-        fout.write("\n")
-        fout.write("\n")
-        fout.write("\n")
-            
-        # chemical specification
-        fout.write("%block ChemicalSpeciesLabel  # Species index, atomic number, species label" + "\n")
-        for atom in atomdict:
-            if ATOM_NUMBER_DICT[atom] in self.atoms:
-                fout.write(f"    {atomdict[atom]}   {ATOM_NUMBER_DICT[atom]}  {atom}                      " + "\n")
-        fout.write("%endblock ChemicalSpeciesLabel " + "\n")
-        
-        fout.write("\n")
-        fout.write(f"#  {self.name}" + "\n")
-        fout.write("\n")
-        fout.write("\n")
-            
-        # coordinates
-        fout.write("AtomicCoordinatesFormat  Ang " + "\n")
-        fout.write("%block AtomicCoordinatesAndAtomicSpecies " + "\n")
+    def write_cropped_fdf(self, step, file_name=None):
+        # Write a cropped (cropped from electrodes, preserves only two Au/metal atoms connected to linkers) FDF file for a specific step in the dynamics.
+        file_name = file_name or (self.name + '.fdf')
+        new_atoms = []
+        new_coordinates = []
         switch = False
-        for i, site in enumerate(self.dynamics[step]):
-            #first remove previous number from end of atomic labels to find out atom type
+        for i, atom in enumerate(self.atoms):
             try:
                 if (self.atoms[i+1] != 79) and (self.atoms[i] == 79):
                     switch = True
@@ -497,132 +141,50 @@ class MolecularDynamics:
             except:
                 switch = False
             if switch:
-                atomtype = self.atoms[i]
-                if type(atomtype) is str:
-                    atomnr = atomdict[atomtype]
-                if type(atomtype) is int:
-                    atomnr = atomdict[ATOM_SYMBOL_DICT[atomtype]]
-              
-                line= "{a:15.10f}".format(a=site[0]) + " "
-                line+="{a:15.10f}".format(a=site[1]) + " "
-                line+="{a:15.10f}".format(a=site[2]) + " "      
-                line+= atomnr +'\n'
-                fout.write(line)
-        fout.write("%endblock AtomicCoordinatesAndAtomicSpecies " + "\n")  
-
+                new_atoms.append(atom)
+                new_coordinates.append(self.dynamics[step][i])
+        new_coordinates = np.array(new_coordinates)
+        fdf.write_fdf(new_atoms, new_coordinates, self.lattice_vectors, file_name=file_name)
 
     def add_step(self, coordinates):
-        new_dyn = []
-        for dyn in self.dynamics:
-            new_dyn.append(dyn)
-        new_dyn.append(coordinates)
-        new_dyn = np.array(new_dyn)
-        self.dynamics = new_dyn
-        
-    
-    def write_ani(self, filename=None):
-        if not filename:
-            fn = open(self.name + '.ANI','w')
-        else:
-            fn = open(filename,'w')
-            
-        for step in self.dynamics:
-                    
-            fn.write(str(len(self.atoms)) + "\n")
-            fn.write("\n")  #read blank line
-            #fn.seek(0)    #rewind
-            
-            for i, site in enumerate(step):
-              fn.write(str(atom_symbol_dict[self.atoms[i]])+ "   ")
-              fn.write("{:15.11f}".format(site[0]) + "   ")
-              fn.write("{:15.11f}".format(site[1]) + "   ")
-              fn.write("{:15.11f}".format(site[2]) + "   ")
-              fn.write("\n")
-        
+        # Add a new step to the dynamics. NEED TESTING
+        self.dynamics = np.concatenate((self.dynamics, [coordinates]), axis=0)
+
+    def write_ani(self, file_name=None, symbols=True):
+        # Write the molecular dynamics to an ANI file. NEED TESTING
+        file_name = file_name or (self.name + '.ANI')
+        xyz.write_ani(self.atoms, self.dynamics, file_name=file_name, symbols=symbols)
 
 
-def read_fdf_geometry(filename):
-    lattice_vectors = []
-    atomic_coords = []
-    species_dict = {}
-    atoms = []
-
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-
-        if line.lower().startswith('%block latticevectors'):
-            i += 1
-            while not lines[i].lower().strip().startswith('%endblock'):
-                lattice_vectors.append(list(map(float, lines[i].split())))
-                i += 1
-
-        elif line.lower().startswith('%block chemicalspecieslabel'):
-            i += 1
-            while not lines[i].lower().strip().startswith('%endblock'):
-                parts = lines[i].split()
-                species_index = int(parts[0])
-                atomic_number = int(parts[1])
-                atomic_name = parts[2]
-                species_dict[species_index] = ATOM_NUMBER_DICT[atomic_name]
-                i += 1
-
-        elif line.lower().startswith('%block atomiccoordinatesandatomicspecies'):
-            i += 1
-            while not lines[i].lower().strip().startswith('%endblock'):
-                parts = lines[i].split()
-                coords = list(map(float, parts[:3]))
-                species_index = int(parts[3])
-                atomic_number = species_dict.get(species_index, 0)
-                atoms.append(atomic_number)
-                atomic_coords.append(coords)
-                i += 1
-        i += 1
-    
-    if filename.find("/"):
-        name = filename[-filename[::-1].find("/")-1:-4]
-    else:
-        name = filename[:-4]
-    
-    structure = MolecularStructure(atoms, atomic_coords, lattice_vectors, name)
-    return structure
+def read_fdf_geometry(file_name: str) -> MolecularStructure:
+    atoms, coordinates, lattice_vectors = fdf.read_fdf_geometry(file_name)
+    return MolecularStructure(atoms, coordinates, lattice_vectors, file_name)
 
 
-def read_xyz_geometry(filename):
-    #from periodictable import elements
-    
-    atoms = []
-    coordinates = []
-    lattice_vectors = np.zeros((3, 3))  # No lattice vectors in XYZ
+def read_xyz_geometry(file_path: str) -> MolecularStructure:
+    atoms, coordinates, lattice_vectors = xyz.read_xyz_geometry(file_path)   
+    return MolecularStructure(atoms, coordinates, lattice_vectors, file_path)
 
-    with open(filename, 'r') as f:
-        lines = f.readlines()
+def read_ani(file_name: str) -> MolecularDynamics:
+    atoms, coordinates, lattice_vectors, name = xyz.read_ani(file_name)
+    return MolecularDynamics(atoms, coordinates, lattice_vectors, name)
 
-    for line in lines[2:]:  # Skip first two lines
-        parts = line.strip().split()
-        if len(parts) < 4:
-            continue
-        symbol = parts[0]
-        coords = list(map(float, parts[1:4]))
-        try:
-            atoms.append(ATOM_NUMBER_DICT[symbol])
-        except:
-            atoms.append(int(symbol))
-        coordinates.append(coords)
-    
-    if filename.find("/"):
-        name = filename[-filename[::-1].find("/")-1:-4]
-    else:
-        name = filename[:-4]
+def lattice_copies(molecule: MolecularStructure, n: int, m: int, l: int, name: str = None) -> MolecularStructure:
+    """
+    Creates copies of a molecular structure by translating it in a lattice defined by n, m, l.
+    n, m, l are the number of copies in each direction.
+    The new coordinates are calculated by adding the lattice vectors multiplied by the indices.
 
-    return MolecularStructure(atoms, coordinates, lattice_vectors, name)
+    Parameters:
+    molecule (MolecularStructure): The original molecular structure.
+    n (int): Number of copies in the x-direction.
+    m (int): Number of copies in the y-direction.
+    l (int): Number of copies in the z-direction.
+    name (str, optional): Name for the new molecular structure. If not provided, it will be generated based on the original name.
 
-
-def create_copies_by_lattice(molecule, n, m, l, name=None):
-    # creates same structure, n vinthin first lattice vector and so on
+    Returns:
+    MolecularStructure: A new molecular structure containing the copies.
+    """
     
     new_coordinates = []
     new_atoms = []
@@ -643,139 +205,30 @@ def create_copies_by_lattice(molecule, n, m, l, name=None):
     else:
         new_name = name
         
-    
     return MolecularStructure(new_atoms, new_coordinates, molecule.lattice_vectors, new_name)
 
 
-def rotational_matrix(axis, angle):
-    if axis=="x":
-        case = 0
-    elif axis=="y":
-        case = 1
-    elif axis=="z":
-        case = 2
-        
-    matrix = np.zeros((3,3))
-    cos = np.cos(angle)
-    sin = np.sin(angle)
-    
-    for i in range(3):
-        for j in range(i+1):
-            if (i == j) and (i == case):
-                matrix[i,j] = 1
-            elif (i == j) and (i != case):
-                matrix[i,j] = cos
-            elif (i != j) and (i != case) and (j != case):
-                if case == 1:
-                    matrix[i,j] = -sin
-                    matrix[j,i] = -matrix[i,j]
-                else:
-                    matrix[i,j] = sin
-                    matrix[j,i] = -matrix[i,j]
-    print(matrix)
-    return matrix
-                
-
-def rotate_structure_straight(molecule, vector):
-    # transforms coordinates so that the vector is in z-axis after transformation
-    vector = vector/np.linalg.norm(vector)
-    x, y, z = vector[0], vector[1], vector[2]
-    phi = np.sign(y)*np.arccos(x/np.sqrt(x**2+y**2))
-    theta = np.arccos(z/np.sqrt(x**2+y**2+z**2))
-    
-    rotmat_z = rotational_matrix("z", -phi)
-    rotmat_y = rotational_matrix("y", -theta)
-    
-    #CHECK
-    eps = 1e-4
-    unit_test = np.matmul(rotmat_y, np.matmul(rotmat_z, vector))
-    if (np.abs(unit_test[0]) >= eps) or (np.abs(unit_test[1]) >= eps):
-        print("Error: rotate_structure_strainght finction does not work properly")
-        print(unit_test, np.linalg.norm(unit_test))
-    
-    new_coordinates = molecule.coordinates
-    for i, site in enumerate(molecule.coordinates):
-        site_new = np.matmul(rotmat_y, np.matmul(rotmat_z, site))
-        new_coordinates[i] = site_new
-    
-    return MolecularStructure(molecule.atoms, new_coordinates, molecule.lattice_vectors, molecule.name)
-    
-
-def translate_structure(molecule, vector):
-    # translates all sites by same vector
-    
-    new_coordinates = molecule.coordinates
-    for i, site in enumerate(molecule.coordinates):
-        new_coordinates[i] = site + vector
-    
-    return MolecularStructure(molecule.atoms, new_coordinates, molecule.lattice_vectors, molecule.name)
-     
-
-def translate_to_geometrical_center(molecule):
-    # translates structure to its center of mass   
-    
-    x_aux, y_aux, z_aux = 0, 0, 0
-    for i, site in enumerate(molecule.coordinates):
-        x_aux += site[0]
-        y_aux += site[1]
-        z_aux += site[2]
-    
-    x_aux /= i+1
-    y_aux /= i+1
-    z_aux /= i+1
-    
-    new_mol = translate_structure(molecule, -np.array([x_aux,y_aux,z_aux]))
-    
-    return new_mol
-           
-
-def read_ani(filename, name="trajectory"):
-    from periodictable import elements
-    atoms = []
-    dynamics = []
-    lattice_vectors = np.zeros((3, 3))
-
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-
-    num_atoms = int(lines[0].strip())
-    
-    for step in range(int(len(lines)/(num_atoms+2))):
-        i = 0
-        while i < len(lines):
-            i += 1  # Skip comment line
-            i += 1
-    
-            step_coords = []
-            for _ in range(num_atoms):
-                parts = lines[i].strip().split()
-                symbol = parts[0]
-                coords = list(map(float, parts[1:4]))
-                step_coords.append(coords)
-                if len(dynamics) == 0:
-                    atoms.append(elements.symbol(symbol).number)
-                i += 1
-            step_coords = np.array(step_coords)
-        dynamics.append(step_coords)
-    dynamics = np.array(dynamics)
-    return MolecularDynamics(atoms, dynamics, lattice_vectors, name)
-
-
-def xyz2fdf(filename, outfile=None):
-    mol = read_xyz_geometry(filename)
-    if outfile:
-        mol.name =  outfile
+def xyz2fdf(file_name: str, out_file=None):
+    # Convert XYZ file to FDF format.
+    mol = read_xyz_geometry(file_name)
+    if out_file:
+        mol.name =  out_file
     mol.write_fdf()
     
 
-def fdf2xyz(filename, outfile=None):
-    mol = read_fdf_geometry(filename)
-    if outfile:
-        mol.name =  outfile
+def fdf2xyz(file_name: str, out_file=None):
+    # Convert FDF file to XYZ format.
+    mol = read_fdf_geometry(file_name)
+    if out_file:
+        mol.name =  out_file
     mol.write_xyz()
 
 
-def add_two_structures(mol1, mol2):
+def connect_two_structures(mol1, mol2):
+    """
+    Connects two molecular structures by concatenating their coordinates and atoms.
+    Assumes that mol1 and mol2 have compatible lattice vectors.
+    """
     new_coordinates = np.concatenate((mol1.coordinates, mol2.coordinates))
     new_atoms = []
     for site in mol1.atoms:
@@ -788,9 +241,21 @@ def add_two_structures(mol1, mol2):
 
 
 def connect_molecule_with_cluster(mol, bottom, top):
-    # beware: molecule must have two gold/silver sites at the ends, functions for trimer tips
+    """
+    Connects a molecule with two electrodes (bottom and top) by aligning the molecule's gold sites with the electrodes' connection sites.
+    Assumes that the molecule has two gold/silver sites at the ends.
+    The bottom electrode is translated to the bottom gold site of the molecule, and the top electrode is positioned accordingly.
+    The bottom electrode's last atom is the binding site for the molecule, and the top electrode's first atom is the binding site for the molecule.
+
+    Parameters:
+    mol (MolecularStructure): The molecule to be connected.
+    bottom (MolecularStructure): The bottom electrode structure.
+    top (MolecularStructure): The top electrode structure.
+    Returns:
+    MolecularStructure: A new molecular structure that combines the molecule and the electrodes.
+    """
     
-    # translate molecule so that it bottom gold is connected to gold site of bottom electrode
+    # translate molecule so that bottom gold is connected to gold site of bottom electrode
     trans = bottom.coordinates[-1] - mol.coordinates[0]
     mol.translate(trans)
     
@@ -807,7 +272,7 @@ def connect_molecule_with_cluster(mol, bottom, top):
     from_vec = mol.coordinates[-1] - mol.coordinates[0]
     mol.rotate_from_to(from_vec, to_vec, origin)
     
-    # rotate molecule around previous to_vec to optimal position given by au trimer
+    # rotate molecule around previous to_vec to optimal position given by au trimer (not optimal for ad atoms!)
     from_vec = mol.coordinates[1] - mol.coordinates[0]
     to_vec = 2*bottom.coordinates[-1] - bottom.coordinates[-2] - bottom.coordinates[-3]
     axis = mol.coordinates[-1]-mol.coordinates[0]
@@ -817,93 +282,73 @@ def connect_molecule_with_cluster(mol, bottom, top):
     # remove metal sites from molecule
     mol.remove_site([0,len(mol.atoms)-1])
     
-    
     # create the whole system
-    temp_join = add_two_structures(bottom, mol)
-    final_join = add_two_structures(temp_join, top)
+    temp_join = connect_two_structures(bottom, mol)
+    final_join = connect_two_structures(temp_join, top)
     final_join.lattice_vectors[2][2] = final_join.coordinates[-1][2]
     return final_join
 
+
 def standard_lattice():
     # returns standard lattice vectors (hexagonal) with third vector being zero
-    
     latt = np.array([[5.939775,  -10.287988,   0.000000],
                      [5.939775,   10.287988,   0.000000],
                      [0.000000,    0.000000,   0.000000]])
     
     return latt
 
-#function for returning A B C lattice vectors 4x4
-''
+
+def recognize_lattice_layer(coordinates, tol = 0.05):
+    # recognizes the layer of a given set of coordinates based on the average z-coordinate.
+    # coordinates is either one vector or a array of vectors.
+    def layer(x,y):
+        a = 5.939775/4
+        b = 10.287988/4
+        if (abs(np.array([x,y])/np.array([a,b]) - np.round(np.array([x,y])/np.array([a,b]))) < np.array([tol, tol])).all():
+            return 'A'
+        elif (abs(np.array([x-a,y-b/3])/np.array([a,b]) - np.round(np.array([x-a,y-b/3])/np.array([a,b]))) < np.array([tol, tol])).all():
+            return 'B'
+        elif (abs(np.array([x-a,y+b/3])/np.array([a,b]) - np.round(np.array([x-a,y+b/3])/np.array([a,b]))) < np.array([tol, tol])).all():
+            return 'C'
+        else:
+            return None
+        
+    if np.array(coordinates).ndim == 1:
+        return layer(coordinates[0], coordinates[1])
+    elif np.array(coordinates).ndim == 2:
+        list_layers = []
+        for coord in coordinates:
+            layer_type = layer(coord[0], coord[1])
+            if layer_type:
+                list_layers.append(layer_type)
+        return list_layers
+
+
 def return_lattice_positions(layer):
     # returns 16 coordinates of either of A, B, C layers
-    
-    # standard lattice
     a1 = np.array([5.939775, -10.287988])/4
     a2 = np.array([5.939775,  10.287988])/4
     
     lattice = []
-    
-    match layer:
-        case 'A':
-            for i in range(4):
-                for j in range(4):
-                    lattice.append(i * a1 + j * a2)
-            
-        case 'B':
-            for i in range(4):
-                for j in range(4):
-                    lattice.append(i * a1 + j * a2 + a1/3 + 2*a2/3)
-            
-        case 'C':
-            for i in range(4):
-                for j in range(4):
-                    lattice.append(i * a1 + j * a2 + 2*a1/3 + a2/3)
+    if layer == 'A':
+        for i in range(4):
+            for j in range(4):
+                lattice.append(i * a1 + j * a2)
+    elif layer == 'B':
+        for i in range(4):
+            for j in range(4):
+                lattice.append(i * a1 + j * a2 + a1/3 + 2*a2/3)
+    elif layer == 'C':
+        for i in range(4):
+            for j in range(4):
+                lattice.append(i * a1 + j * a2 + 2*a1/3 + a2/3)
 
     return np.array(lattice)
-''
+
 
 def read_ani(filename):
-    # function enabling reading .ANI file for further manipulation
-
-        
-    atoms = []
-    dynamics = []
-    lattice_vectors = np.zeros((3, 3))  # No lattice vectors in XYZ
-
-    # CHANGE (copied from read_xyz())
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-
-    num_atoms = int(lines[0].strip())
-
-    not_last_step = True
-    j = 0
-    while not_last_step:
-        # iterate over all atoms and write 
-        coordinates = []
-        for i in range(num_atoms):
-            parts = lines[j*(num_atoms+2) + 2 + i].strip().split()
-            if j == 0:
-                symbol = parts[0]
-                try:
-                    atoms.append(ATOM_NUMBER_DICT[symbol])
-                except:
-                    atoms.append(int(symbol))
-            coords = list(map(float, parts[1:4]))
-            coordinates.append(coords)
-        dynamics.append(coordinates)        
-        j += 1
-        try:
-            t = lines[j*(num_atoms+2) + num_atoms] 
-        except:
-            not_last_step = False
-    
-    if filename.find("/"):
-        name = filename[-filename[::-1].find("/")-1:-4]
-    else:
-        name = filename[:-4]
-
+    # Reads an ANI file and returns a MolecularDynamics object.
+    atoms, dynamics, lattice_vectors, name = xyz.read_ani(filename)
     return MolecularDynamics(atoms, dynamics, lattice_vectors, name)
 
 # === Example Usage ===
@@ -919,5 +364,5 @@ if __name__=="__main__":
     print(mol.center_of_mass())
     
     #create multiple copies by lattice and write its .xyz
-    multiple = create_copies_by_lattice(mol, n=3, m=3, l=3)
+    multiple = lattice_copies(mol, n=3, m=3, l=3)
     multiple.write_xyz()
