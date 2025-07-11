@@ -1,4 +1,4 @@
-# Python library for preparations of electronic transport structures 
+# Python library for preparations of electron transport structures 
 
 Contains modules for handling molecular structure, 
 its shifting, rotating and writing/reading in two formats: .fdf and .xyz.
