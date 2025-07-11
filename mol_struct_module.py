@@ -147,11 +147,11 @@ class MolecularDynamics:
         fdf.write_fdf(new_atoms, new_coordinates, self.lattice_vectors, file_name=file_name)
 
     def add_step(self, coordinates):
-        # Add a new step to the dynamics. NEED TESTING
+        # Add a new step to the dynamics.
         self.dynamics = np.concatenate((self.dynamics, [coordinates]), axis=0)
 
     def write_ani(self, file_name=None, symbols=True):
-        # Write the molecular dynamics to an ANI file. NEED TESTING
+        # Write the molecular dynamics to an ANI file.
         file_name = file_name or (self.name + '.ANI')
         xyz.write_ani(self.atoms, self.dynamics, file_name=file_name, symbols=symbols)
 
@@ -222,6 +222,16 @@ def fdf2xyz(file_name: str, out_file=None):
     if out_file:
         mol.name =  out_file
     mol.write_xyz()
+
+
+def MS2MD(struct: MolecularStructure) -> MolecularDynamics:
+    dymamics = np.array([struct.coordinates])
+    return MolecularDynamics(atoms=struct.atoms, dynamics=dymamics, lattice_vectors=struct.lattice_vectors, name=struct.name)
+
+
+def MD2MS(struct: MolecularDynamics, step=0) -> MolecularStructure:
+    coordinates = struct.dynamics[step]
+    return MolecularStructure(atoms=struct.atoms, coordinates=coordinates, lattice_vectors=struct.lattice_vectors, name=struct.name)
 
 
 def connect_two_structures(mol1, mol2):
