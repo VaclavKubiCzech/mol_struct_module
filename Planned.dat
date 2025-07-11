@@ -1,5 +1,0 @@
-Plans, how to improve the module:
-- add gzmat formats
-- develop optimisation functions using ML atomic potentials
-- interface with fortran to produce simple HF calculations
-- code in fortran DFT methods for energy calculations
